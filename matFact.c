@@ -19,22 +19,22 @@ void random_fill_LR(double **matrix1, double **matrix2, int nU, int nI, int nF)
 
   for(int i = 0; i < nF; i++)
     for(int j = 0; j < nI; j++)
-      matrix2[i][j] = RAND01 / (double) nF; 
-  
+      matrix2[i][j] = RAND01 / (double) nF;
+
 }
 
 // N1 -> rows of matrix1
 // N2 -> columns of matrix2
-// M -> columns of matrix1 and rows of matrix2
+// M  -> columns of matrix1 and rows of matrix2
 void matrix_product(double **matrix1, double **matrix2, double **result_matrix, int N1, int N2, int M){
     int k; // rows and columns of result_matrix
-    //determina la matrice prodotto
-    for(int i=0; i<N1; i++){ //i: blocca la riga di m1 da moltiplicare m1[i][?]
-        for(int j=0; j<N2; j++){ //j: blocca la colonna di m2 da moltiplicare m2[?][j]
+    //defines the product matrix
+    for(int i=0; i<N1; i++){ //i: hold the row of m1 to multiply m1 [i][?]
+        for(int j=0; j<N2; j++){ //j: hold the column of m2 to be multiplied m2 [?][j]
             result_matrix[i][j] = 0;
-                for(k=0; k<M; k++){
-                    result_matrix[i][j] += matrix1[i][k] * matrix2[k][j];
-                }
+            for(k=0; k<M; k++){
+                result_matrix[i][j] += matrix1[i][k] * matrix2[k][j];
+            }
         }
     }
 }
@@ -48,17 +48,19 @@ void copy_matrix(double **matrix,double **original_matrix,int rows,int cols){
 //rows->rows of non-zero elements of A
 //cols->cols of non-zero elements of A
 //nz-> number of non-zero elements
-void matrix_factorization(double **L,double **R, double **B,double **A,double **matrix1, double **matrix2,int *rows_nz,int *cols_nz,int nz,float alpha,int nF,int nU,int nI){
-
+void matrix_factorization(double **L,double **R, double **B,double **A,double **matrix1,
+    double **matrix2,int *rows_nz,int *cols_nz,int nz,float alpha,int nF,int nU,int nI){
     int j=0;
+    double sub;
     for(int i=0; i<nz; i++){
+        sub=2*alpha*(A[rows_nz[i]][cols_nz[j]]-B[rows_nz[i]][cols_nz[j]]);
         for(int k=0; k<nF;k++){
-            L[rows_nz[i]][k]= L[rows_nz[i]][k]-2*alpha*(A[rows_nz[i]][cols_nz[j]]-B[rows_nz[i]][cols_nz[j]])*(-matrix2[k][cols_nz[j]]);
-            R[k][cols_nz[j]]= R[k][cols_nz[j]]-2*alpha*(A[rows_nz[i]][cols_nz[j]]-B[rows_nz[i]][cols_nz[j]])*(-matrix1[rows_nz[i]][k]);
+            L[rows_nz[i]][k]= L[rows_nz[i]][k]-sub*(-matrix2[k][cols_nz[j]]);
+            R[k][cols_nz[j]]= R[k][cols_nz[j]]-sub*(-matrix1[rows_nz[i]][k]);
         }
         j++;
     }
- 
+
   copy_matrix(matrix1,L,nU,nF);
   copy_matrix(matrix2,R,nF,nI);
 }
@@ -89,15 +91,12 @@ int main(int argc, char *argv[]){
 
   int iter; // number of iterations
   float alpha; // value of convergence rate
-  int features;
   int rows,cols; // values of matrix A
   int no_zero; // number of non-zero elements into matrix A
   int rows_A, cols_A; // values of max matrix A
   double value_A; // value of elements into matrix A
   int *rows_nz; // value row no-zero
   int *cols_nz; // value column no-zero
-  double diff_pow; // value of pow differences no-zero
-  double sum_diff=0; // value sum of pow_diff
 
   int while_i=0; // value line of file
   int while_j=0; // increment value of no-zero element
@@ -107,7 +106,7 @@ int main(int argc, char *argv[]){
       std::istringstream iss(line);
       if(while_i<3)
 
-        iss >> data[while_i]; // save value of the first 3 line of file
+      iss >> data[while_i]; // save value of the first 3 line of file
 
       else if(while_i==3){
 
@@ -124,7 +123,7 @@ int main(int argc, char *argv[]){
 
       }else{
 
-        iss >> rows >> cols >> value_A;            
+        iss >> rows >> cols >> value_A;
 
         // Insert values into matrix A
         A[rows][cols]={value_A};
@@ -143,37 +142,29 @@ int main(int argc, char *argv[]){
   // Insert value into variables iteration, alpha, features
   iter = data[0];
   alpha = data[1];
-  features = data[2];
+  int nF = data[2];
 
   // Values of rows and columns of matrix L_original and R_original
   int nU = rows_A;
   int nI = cols_A;
-  int nF = features;
 
-  // Matrix original L initialization
-  L_original = new double*[nU]();
-    for(int i=0; i<nU; i++)
-        L_original[i] = new double[nF]();
-
-  // Matrix original R initialization
-  R_original = new double*[nF]();
-    for(int i=0; i<nF; i++)
-        R_original[i] = new double[nI]();
-
-  // Matrix L initialization
-  L = new double*[nU]();
-    for(int i=0; i<nU; i++)
-        L[i] = new double[nF]();
-
-  // Matrix R initialization
-  R = new double*[nF]();
-    for(int i=0; i<nF; i++)
-        R[i] = new double[nI]();
-
-    //Matrix B initialization
+  // Matrix original L,L,B initialization
   B = new double*[nU]();
-    for(int i=0; i<nU; i++)
-        B[i] = new double[nI]();
+  L = new double*[nU]();
+  L_original = new double*[nU]();
+  for(int i=0; i<nU; i++){
+      L_original[i] = new double[nF]();
+      L[i] = new double[nF]();
+      B[i] = new double[nI]();
+  }
+
+  // Matrix original R,R initialization
+  R = new double*[nF]();
+  R_original = new double*[nF]();
+  for(int i=0; i<nF; i++){
+      R_original[i] = new double[nI]();
+      R[i] = new double[nI]();
+  }
 
   // Fill matrix L_origianl and R_original with random value
   random_fill_LR(L_original, R_original, nU, nI, nF);
@@ -184,9 +175,8 @@ int main(int argc, char *argv[]){
   copy_matrix(R,R_original,nF,nI);
 
   matrix_product(L, R, B, nU, nI, nF);
-  
-  for(int i=0;i<iter;i++){
 
+  for(int i=0;i<iter;i++){
     matrix_factorization(L,R,B,A,L_original,R_original,rows_nz,cols_nz,no_zero,alpha,nF,nU,nI);
     matrix_product(L, R, B, nU, nI, nF);
   }
@@ -211,7 +201,7 @@ int main(int argc, char *argv[]){
       max = 0;
 
       std::cout<<col<<std::endl;
-     
+
   }
 
   return 0;
